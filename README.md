@@ -9,6 +9,31 @@ It includes:
 - Verified properties such as correctness of the matcher.
 - Extraction of verified OCaml code for matching strings.
 
+## Reproducibility
+
+### Environment
+
+- **Operating system:** macOS Sequoia 15.6.1 (24G90)
+- **OCaml version:** 5.2.1
+- **Rocq version:** 9.1.0
+- **Opam version:** 2.3.0
+- **VS Code extension:** VSRocq (v2.3.2)
+- **Makefile:** GNUMakefile for Rocq 9.1.0 
+
+```bash
+$ rocq -v
+The Rocq Prover, version 9.1.0
+compiled with OCaml 5.2.1
+$ opam --version
+2.3.0
+```
+
+### Verification
+
+After running `make`, the build should finish without errors.
+
+Expected output (ending lines):
+
 ## Tools
 - [Coq / Rocq](https://coq.inria.fr/)
 - OCaml (for extracted code)
