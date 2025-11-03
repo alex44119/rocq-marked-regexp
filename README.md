@@ -34,6 +34,12 @@ After running `make`, the build should finish without errors.
 
 Expected output (ending lines):
 
+```bash
+ROCQ DEP VFILES
+coq_makefile -f _CoqProject -o Makefile
+ROCQ compile theories/Reg.v
+```
+
 ## Tools
 - [Coq / Rocq](https://coq.inria.fr/)
 - OCaml (for extracted code)
