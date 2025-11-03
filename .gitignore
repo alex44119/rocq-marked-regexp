@@ -4,6 +4,8 @@ Makefile.rocq
 Makefile.rocq.conf
 
 # Default coq gitignores
+Makefile.rocq
+Makefile.rocq.conf
 .*.aux
 .*.d
 *.a
@@ -49,10 +51,6 @@ time-of-build-after.log
 time-of-build-before.log
 time-of-build-both.log
 time-of-build-pretty.log
-
-# My not yet functional RegParser :
-
-RegParser.v
-theories/Test.v
-makefile.local
 .DS_Store
+theories/RegParser.v
+theories/Test.v
