@@ -2,6 +2,8 @@
 _build/
 
 # Default coq gitignores
+Makefile.rocq
+Makefile.rocq.conf
 .*.aux
 .*.d
 *.a
