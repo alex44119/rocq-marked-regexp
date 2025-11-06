@@ -5,10 +5,13 @@
 
 From Stdlib Require Import String Ascii.
 
-(* Regular expressions *)
-Inductive Reg : Type :=
-| Eps : Reg                           (* ε *)
-| Sym : Ascii.ascii -> Reg            (* a *)
-| Alt : Reg -> Reg -> Reg             (* α | β *)
-| Seq : Reg -> Reg -> Reg             (* α β *)
-| Rep : Reg -> Reg.                   (* α* *)
+(* Polymorphic regular expressions *)
+Inductive Reg (A : Type) : Type :=
+| Eps : Reg A                         (* ε *)
+| Sym : A -> Reg A                    (* a *)
+| Alt : Reg A -> Reg A -> Reg A       (* α | β *)
+| Seq : Reg A -> Reg A -> Reg A       (* α β *)
+| Rep : Reg A -> Reg A.               (* α* *)
+
+Definition RegChar := Reg Ascii.ascii.
+Definition RegBool := Reg bool.
