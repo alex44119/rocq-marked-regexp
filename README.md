@@ -13,17 +13,16 @@ It includes:
 
 ### Environment
 
-- **Operating system:** macOS Sequoia 15.6.1 (24G90)
-- **OCaml version:** 5.2.1
-- **Rocq version:** 9.1.0
+- **OCaml version:** 4.14.0
+- **Rocq version:** 9.0.0
 - **Opam version:** 2.3.0
 - **VS Code extension:** VSRocq (v2.3.2)
-- **Makefile:** GNUMakefile for Rocq 9.1.0 
+- **Makefile:** GNUMakefile for Rocq 9.0.0 
 
 ```bash
-$ rocq -v
-The Rocq Prover, version 9.1.0
-compiled with OCaml 5.2.1
+$ rocq --version
+The Rocq Prover, version 9.0.0
+compiled with OCaml 4.14.0
 $ opam --version
 2.3.0
 ```
@@ -35,9 +34,10 @@ After running `make`, the build should finish without errors.
 Expected output (ending lines):
 
 ```bash
+$ make
 ROCQ DEP VFILES
-coq_makefile -f _CoqProject -o Makefile
 ROCQ compile theories/Reg.v
+ROCQ compile theories/RegAccept.v
 ```
 
 ## Tools

@@ -51,3 +51,6 @@ time-of-build-pretty.log
 # My not yet functional RegParser :
 
 RegParser.v
+theories/Test.v
+makefile.local
+.DS_Store
