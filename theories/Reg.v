@@ -17,19 +17,6 @@ Inductive Reg (A : Type) : Type :=
 Definition RegChar := Reg Ascii.ascii.
 Definition RegBool := Reg bool.
 
-(* Fixpoint version *)
-Fixpoint size {A : Type} (r : Reg A) : nat :=
-  match r with
-  | Eps _ => 1
-  | Sym _ _ => 1
-  | Alt _ r1 r2 => 1 + size r1 + size r2
-  | Seq _ r1 r2 => 1 + size r1 + size r2
-  | Rep _ r' => 1 + size r'
-  end.
-
-Definition measure {A : Type} (p : Reg A * list A) : nat :=
-  size (fst p) + length (snd p).
-
 Fixpoint language_of {A : Type} (r : Reg A) (w : list A) : Prop :=
   match r with
   | Eps _ => w = []
