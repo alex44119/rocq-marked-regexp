@@ -1,2 +1,3 @@
--Q theories MarkedRegex
+-R theories MarkedRegex
 theories/Reg.v
+theories/RegAccept.v
