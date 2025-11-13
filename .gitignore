@@ -1,5 +1,7 @@
 # Make build directory
 _build/
+Makefile.rocq
+Makefile.rocq.conf
 
 # Default coq gitignores
 .*.aux
