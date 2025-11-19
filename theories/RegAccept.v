@@ -30,15 +30,21 @@ Fixpoint parts {A : Type} (l : list A) : list (list (list A)) :=
       ) pss)
   end.
 
-Fixpoint accept {A : Type} (eqA : A -> A -> bool) (r : Reg A) (w : list A) : bool :=
+Fixpoint accept {A : Type} (eqA : A -> A -> bool) (r : Reg) (w : list A) : bool :=
   match r with
-  | Eps _ => match w with [] => true | _ => false end
-  | Sym _ a => match w with [b] => eqA a b | _ => false end
-  | Alt _ r1 r2 => accept eqA r1 w || accept eqA r2 w
-  | Seq _ r1 r2 =>
+  | Eps => match w with 
+    |[] => true
+    | _ => false 
+  end
+  | Sym a => match w with 
+    |[b] => eqA a b 
+    | _  => false 
+  end
+  | Alt r1 r2 => accept eqA r1 w || accept eqA r2 w
+  | Seq r1 r2 =>
       (* tester toutes les décompositions *)
       existsb (fun '(w1,w2) => accept eqA r1 w1 && accept eqA r2 w2) (split w)
-  | Rep _ r' =>
+  | Rep r' =>
       (* tester toutes les partitions *)
       existsb (fun ws => forallb (fun wi => accept eqA r' wi) ws) (parts w)
   end.
