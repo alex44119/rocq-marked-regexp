@@ -3,17 +3,17 @@
     "A Play on Regular Expressions" — Fischer, Huch, and Wilke (ICFP 2010).
 *)
 
-From Stdlib Require Import String Ascii Bool List.
+From Stdlib Require Import Ascii Bool List.
 From MarkedRegex Require Import Reg.
 Import ListNotations.
 
-Fixpoint split {A : Type} (l : list A) : list (list A * list A) :=
-  match l with
-  | [] => [([],[])]
-  | c :: cs =>
-      let rest := split cs in
-      ([], c::cs) :: map (fun '(s1,s2) => (c::s1, s2)) rest
-  end.
+Definition split {A : Type} (l : list A) : list (list A * list A) :=
+  let f := (fun (x : nat) => (firstn x l, skipn x l)) in
+    map f (seq 0 ((length l)+1)).
+
+(* Eval *)
+Eval compute in (split []).
+Eval compute in (split [1;2;3]).
 
 Fixpoint parts {A : Type} (l : list A) : list (list (list A)) :=
   match l with
@@ -29,6 +29,12 @@ Fixpoint parts {A : Type} (l : list A) : list (list (list A)) :=
         end
       ) pss)
   end.
+
+
+(* Eval *)
+Eval compute in (parts []).
+Eval compute in (parts [1]).
+
 
 Fixpoint accept {A : Type} (eqA : A -> A -> bool) (r : Reg) (w : list A) : bool :=
   match r with
@@ -48,3 +54,21 @@ Fixpoint accept {A : Type} (eqA : A -> A -> bool) (r : Reg) (w : list A) : bool 
       (* tester toutes les partitions *)
       existsb (fun ws => forallb (fun wi => accept eqA r' wi) ws) (parts w)
   end.
+
+
+(* 
+Definition sigma_accept_Eps {A : Type} (w : list A)
+  : { language_of (Eps A) w } + { ~ language_of (Eps A) w }.
+Proof.
+  destruct w as [| a w'].
+  - simpl. left. reflexivity.
+  - simpl. right. intros H. discriminate H.
+Qed.
+
+
+Fixpoint sigma_accept {A : Type} (eqA : A -> A -> bool) (r : Reg A) (w : list A)
+  : { language_of r w } + { ~ language_of r w } :=
+  match r return { language_of r w } + { ~ language_of r w } with
+  | Eps _ => sigma_accept_Eps w'
+  | 
+  end. *)
