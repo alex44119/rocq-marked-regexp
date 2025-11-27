@@ -7,47 +7,37 @@ From Stdlib Require Import List Lia Program.Equality.
 From MarkedRegex Require Import Util.
 Import ListNotations.
 
-Section RegDef.
-(** * Definition of Reg
+Section RegularExpressions.
 
-    This sections defines  inductive Reg type presented in the paper *)
+  Context {A : Type}.
 
-    Context {A : Type}.
+(** * Polymorphic regular expressions *)
 
-(** Polymorphic regular expressions *)
-Inductive Reg : Type :=
-| Eps : Reg                     (* ε *)
-| Sym : A -> Reg                (* a *)
-| Alt : Reg -> Reg -> Reg       (* α | β *)
-| Seq : Reg -> Reg -> Reg       (* α β *)
-| Rep : Reg -> Reg.             (* α* *)
+  Inductive Reg : Type :=
+    | Eps : Reg                     (* ε *)
+    | Sym : A -> Reg                (* a *)
+    | Alt : Reg -> Reg -> Reg       (* α | β *)
+    | Seq : Reg -> Reg -> Reg       (* α β *)
+    | Rep : Reg -> Reg.             (* α* *)
 
-End RegDef.
 
-Section Semantics.
-  (** * Definitions of language_of
+(** * Fixpoint Semantics *)
 
-    This sections defines the semantical function
-    language_of : forall (A : Type), Reg A -> list A -> Prop 
-    in two ways, first one is using Fixpoint and the other one uses Inductive *)
-
-    Context {A : Type}.
-
-Fixpoint language_of (r : Reg) (w : list A) : Prop :=
-  match r with
-  | Eps => w = []
-  | Sym a => w = [a]
-  | Alt r1 r2 => language_of r1 w \/ language_of r2 w
-  | Seq r1 r2 =>
-      exists w1 w2,
-        w = w1 ++ w2 /\
-        language_of r1 w1 /\
-        language_of r2 w2
-  | Rep r' =>
-      exists (ws : list (list A)),
-        concat ws = w /\
-        (forall wi, In wi ws -> language_of r' wi)
-  end.
+  Fixpoint language_of (r : Reg) (w : list A) : Prop :=
+    match r with
+    | Eps => w = []
+    | Sym a => w = [a]
+    | Alt r1 r2 => language_of r1 w \/ language_of r2 w
+    | Seq r1 r2 =>
+        exists w1 w2,
+          w = w1 ++ w2 /\
+          language_of r1 w1 /\
+          language_of r2 w2
+    | Rep r' =>
+        exists (ws : list (list A)),
+          concat ws = w /\
+          (forall wi, In wi ws -> language_of r' wi)
+    end.
 
 Inductive language_of_ind : Reg -> list A -> Prop :=
 | LangEps : language_of_ind Eps []
@@ -64,16 +54,10 @@ Inductive language_of_ind : Reg -> list A -> Prop :=
     language_of_ind (Rep r) w2 ->
     language_of_ind (Rep r) (w1 ++ w2).
 
-End Semantics.
 
-Section Equivalence.
-  (** * Equivalence of these two definitions
+(** * Equivalence of these two definitions *)
 
-    In this section, we prove that language_of and language_of_ind are equivalent. *)
-
-    Context {A : Type}.
-
-Proposition language_of_to_ind :  
+Proposition language_of_fix_to_ind :  
   forall (r : Reg) (w : list A),
     language_of r w -> language_of_ind r w.
 Proof.
@@ -124,7 +108,7 @@ Proof.
 intros; eapply language_of_ind_Rep_exists'; eauto.
 Qed.
 
-Lemma language_of_to_fix :
+Lemma language_of_ind_to_fix :
   forall (r : Reg) (w : list A),
     language_of_ind r w -> language_of r w.
 Proof.
@@ -178,8 +162,8 @@ Theorem language_of_equiv :
     language_of r w <-> language_of_ind r w.
 Proof.
   intros r w. split.
-  - apply language_of_to_ind.
-  - apply language_of_to_fix.
+  - apply language_of_fix_to_ind.
+  - apply language_of_ind_to_fix.
 Qed.
 
-End Equivalence.
+End RegularExpressions.
