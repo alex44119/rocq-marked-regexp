@@ -5,7 +5,7 @@ clean: Makefile.rocq
 	@+$(MAKE) -f Makefile.rocq cleanall
 	@rm -f Makefile.rocq Makefile.rocq.conf
 
-Makefile.rocq: _RocqProject
+Makefile.rocq: _CoqProject
 	rocq makefile -f _CoqProject -o Makefile.rocq
 
 force _RocqProject Makefile: ;
