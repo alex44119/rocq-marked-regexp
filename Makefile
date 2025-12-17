@@ -8,7 +8,7 @@ clean: Makefile.rocq
 Makefile.rocq: _CoqProject
 	rocq makefile -f _CoqProject -o Makefile.rocq
 
-force _RocqProject Makefile: ;
+force _CoqProject Makefile: ;
 
 %: Makefile.rocq force
 	@+$(MAKE) -f Makefile.rocq $@
