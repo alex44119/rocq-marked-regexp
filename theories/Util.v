@@ -5,7 +5,9 @@
 From Stdlib Require Import Arith List.
 Import ListNotations.
 
-(* I should use Well Founded Relations instead... *)
+  (* ------------------------------------------------------------ *)
+  (*                 strong_induction tactic                      *)
+  (* ------------------------------------------------------------ *)
 
 Theorem strong_induction_nat :
   forall P : nat -> Prop,
@@ -34,12 +36,10 @@ Proof.
   intros A P Hnil Hstep l.
   (* We perform strong induction on the length of l. *)
   remember (length l) as n eqn:Hn.
-
   (* Define a predicate on nats that says:
        Q n := for all lists of length n, P that list.
   *)
   set (Q := fun n => forall l', length l' = n -> P l').
-
   (* We will prove Q n using strong_induction_nat *)
   assert (Q n) as HQ.
   {
@@ -60,8 +60,6 @@ Proof.
       unfold Q in Hlt.
       apply Hlt. reflexivity.
   }
-
-  (* Now instantiate HQ with l itself (whose length is n) *)
   unfold Q in HQ.
   apply HQ. symmetry. assumption.
 Qed.
@@ -73,3 +71,4 @@ Ltac strong_induction x :=
   | list _ =>
       induction x using strong_induction_list
   end.
+
