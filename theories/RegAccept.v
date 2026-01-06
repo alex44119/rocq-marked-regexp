@@ -249,4 +249,96 @@ Section RegAccept.
           ps
     end.
 
+  Theorem accept_correct (r : Reg) (w : list A) 
+      : acceptb r w = true <-> language_of r w.
+  Proof.
+    revert w.
+    induction r; intro w; simpl.
+    - destruct w; simpl.
+      + split; intro; constructor.
+      + split; intro H; discriminate H.
+    - destruct w as [|b w']; simpl.
+      + split; intro H; discriminate H.
+      + destruct w' as [|c w'']; simpl.
+        * rewrite eqb_true_iff.
+          split.
+          -- intro H; subst; constructor.
+          -- intro H; inversion H; subst; reflexivity.
+        * split; intro H; discriminate H.
+    - rewrite Bool.orb_true_iff.
+      split.
+      + intros [H | H].
+        * apply IHr1 in H. left; assumption.
+        * apply IHr2 in H. right; assumption.
+      + intros [H | H].
+        * left; apply IHr1; assumption.
+        * right; apply IHr2; assumption.
+    - split.
+      + intro H.
+        apply existsb_exists in H.
+        destruct H as [s [Hs Hs_true]].
+        destruct s as [[w1 w2] Hconcat]; simpl in *.
+        apply andb_true_iff in Hs_true.
+        destruct Hs_true as [H1 H2].
+        exists w1, w2.
+        split.
+        * symmetry; exact Hconcat.
+        * split.
+          -- apply IHr1; exact H1.
+          -- apply IHr2; exact H2.
+      + intro H.
+        destruct H as [w1 [w2 [Hw [H1 H2]]]].
+        apply existsb_exists.
+        symmetry in Hw.
+        exists (exist _ (w1, w2) Hw).
+        split.
+        * pose proof (proj2_sig (splits w)). simpl in H.
+          apply H.
+        * simpl.
+          apply andb_true_iff.
+          split.
+          -- apply IHr1; exact H1.
+          -- apply IHr2; exact H2.
+    - split.
+      + intro H.
+        apply existsb_exists in H.
+        destruct H as [p [Hp_in Hp_true]].
+        destruct p as [ws [Hconcat Hnonempty]]; simpl in *.
+
+        rewrite forallb_forall in Hp_true.
+
+        exists ws.
+        split.
+        * exact Hconcat.
+        * intros wi Hwi.
+          apply IHr.
+          apply Hp_true.
+          exact Hwi.
+      + intro H. apply existsb_exists. destruct H as [ws [Hconcat Hlang]].
+        pose proof (concat_clean A w ws Hconcat).
+        destruct X as [ws' [H1 [H2 H3]]].
+        exists (exist _ ws' (conj H1 H2)). split.
+        * pose proof (proj2_sig (parts w)). simpl in H. 
+        apply (H (exist _ ws' (conj H1 H2))).
+        * apply forallb_forall. intros. simpl in H.
+        apply IHr. apply Hlang.
+        apply ((proj1 (Forall_forall _ _)) H3).
+        exact H.
+  Qed.
+  
+  Definition accept_dec (r : Reg) (w : list A)
+      : { language_of r w } + { ~ language_of r w }.
+  Proof.
+    destruct (acceptb r w) eqn:Hb.
+    - left.
+      apply accept_correct.
+      exact Hb.
+    - right.
+      intro Hlang.
+      apply accept_correct in Hlang.
+      (* Hlang : acceptb EqDec r w = true *)
+      rewrite Hb in Hlang.
+      discriminate.
+  Defined.
+
 End RegAccept.
