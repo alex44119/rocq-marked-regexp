@@ -3,256 +3,250 @@
     "A Play on Regular Expressions" — Fischer, Huch, and Wilke (ICFP 2010).
 *)
 
-From Stdlib Require Import Ascii Bool List Arith Nat Lia.
+From Stdlib Require Import Ascii Bool List Arith Nat Lia BinPos BinNat ProofIrrelevance.
 From MarkedRegex Require Import Reg Util.
-Import ListNotations.
+Import ListNotations. 
 
-Definition f_splits {A : Type} (l : list A) (x : nat)
-  : list A * list A :=
-  (firstn x l, skipn x l).
+Section DefSplit.
 
-Definition splits {A : Type} (l : list A) : list (list A * list A) :=
-  map (f_splits l) (seq 0 (length l + 1)).
+  Context {A : Type}.
 
-Definition f_parts {A : Type} (e : A) (cpl : list (list A) * nat)
-  : list (list A) * nat :=
-  match cpl with
-  | ([], n) =>
-        ([[e]], n)
-  | (t :: q, n) =>
-        if Nat.even n
-        then ((e :: t) :: q, Nat.div2 n)
-        else ([e] :: t :: q, Nat.div2 n)
-  end.
+  Definition valid_split (l : list A) :=
+    { lr : list A * list A |
+      fst lr ++ snd lr = l }.
 
-  Definition g_parts {A:Type} (l : list A) (n : nat) :=
-    fst (fold_right f_parts ([], n) l).
+  Definition f_split (l : list A) (x : nat)
+    : valid_split l := (exist (fun lr => fst lr ++ snd lr = l) 
+    (firstn x l, skipn x l)
+    (firstn_skipn x l)).
 
-Definition parts {A : Type} (l : list A) : list (list (list A)) :=
-  map (g_parts l) (seq 0 (2 ^ (length l - 1))).
+  Definition splits_result (l : list A) := 
+    { result : list (valid_split l) |
+      forall x : (valid_split l), In x result}.
 
-(* Eval *)
-Eval compute in (parts []).
-Eval compute in (parts [1;2;3]).
-
-Section CorrectnessLemmas.
-
-  Variable A : Type.
-
-  (* ------------------------------------------------------------ *)
-  (*                 Correctness of splits                        *)
-  (* ------------------------------------------------------------ *)
-
-  (* (w1, w2) ∈ parts w   <->   w = w1 ++ w2 *)
-
-  Lemma splits_complete :
-    forall (w w1 w2 : list A),
-        w = w1 ++ w2 ->
-        In (w1, w2) (splits w).
+  Definition splits (l : list A) : splits_result l.
   Proof.
-    intros w w1 w2 Hw.
-    unfold splits.
-    (* We need to find the index x = length w1 *)
-    assert (Hx : firstn (length w1) w = w1 /\ skipn (length w1) w = w2).
-    {
-      rewrite Hw.
+    refine (exist _ (map (f_split l) (seq 0 (length l + 1))) _).
+    intros. apply in_map_iff. destruct x. exists (length (fst x)).
+    split.
+    - apply (sig_proof_irrelevance _ _ proof_irrelevance). simpl.
+      replace l with (fst x ++ snd x).
+      rewrite firstn_length_concat, skipn_length_concat. 
+      destruct x. simpl. reflexivity.
+    - subst l.
+      rewrite in_seq.
       split.
-      - replace (length w1) with (length w1 + 0) by lia.
-      rewrite firstn_app_2, firstn_0, app_nil_r. reflexivity.
-      - rewrite skipn_app, Nat.sub_diag, skipn_0, skipn_all, app_nil_l. reflexivity.
-    }
-    destruct Hx as [Hf Hs].
-    apply in_map_iff.
-    exists (length w1).
-    split; auto. rewrite Hw. unfold f_splits.
-    rewrite skipn_app, Nat.sub_diag, skipn_0, skipn_all, app_nil_l.
-    replace (length w1) with (length w1 + 0) by lia. 
-    rewrite firstn_app_2, firstn_0, app_nil_r. reflexivity.
-    apply in_seq.
-    split. lia.
-    rewrite Hw, length_app. lia.
+      + lia.
+      + rewrite length_app. lia.
+  Defined.
+
+End DefSplit.
+
+Section DefParts.
+
+  Context {A : Type}.
+
+  Definition valid_ps (l : list A) :=
+    { part : list (list A) |
+      concat part = l /\
+      Forall (fun p => p <> []) part }.
+
+  Definition ps_empty : valid_ps [].
+  Proof.
+    refine (exist _ [] _).
+    split. reflexivity. apply Forall_nil.
+  Defined.
+
+  Definition ps_singleton (e : A) : valid_ps [e].
+  Proof.
+    refine (exist _ [[e]] _).
+    split. reflexivity. constructor. compute. intros. inversion H. apply Forall_nil.
+  Defined.
+
+  Definition add_in (l : list A) (e : A) (ps : valid_ps l) : 
+            valid_ps (e :: l).
+  Proof.
+    destruct ps as [part Hvalid].
+    case part as [| h t]. 
+
+    - destruct Hvalid. rewrite concat_nil in H. rewrite <- H.  
+      refine (ps_singleton e).
+    - (* Case part = h :: t *)
+      refine (exist _ ((e :: h) :: t) _).
+      destruct Hvalid. rewrite Forall_cons_iff in H0. destruct H0.
+      split.
+      + rewrite concat_cons. rewrite concat_cons in H. rewrite <- app_comm_cons. 
+      rewrite H. reflexivity.
+      + rewrite Forall_cons_iff. split.
+        * compute. intros. inversion H2.
+        * apply H1.
+  Defined.
+
+  Definition add_out (l : list A) (e : A) (ps : valid_ps l) : 
+        valid_ps (e :: l).
+  Proof.
+    destruct ps as [part Hvalid].
+    case part as [| h t]. 
+
+    - (* Case part = [] *)
+      refine (exist _ [[e]] _).
+      destruct Hvalid. split.
+      + rewrite concat_nil in H. rewrite <- H. simpl. reflexivity.
+      + constructor. compute. intros. inversion H1. apply Forall_nil.
+    - (* Case part = h :: t *)
+      refine (exist _ ([e] :: (h :: t)) _).
+      destruct Hvalid. rewrite Forall_cons_iff in H0. destruct H0.
+      split.
+      + rewrite concat_cons. rewrite H. simpl. reflexivity.
+      + rewrite Forall_cons_iff. split.
+        * compute. intros. inversion H2.
+        * rewrite Forall_cons_iff. split. apply H0. apply H1.
+  Defined.
+
+  Lemma back_parts (h : A) (t : list A) (ps : valid_ps (h::t)) :
+            (exists ps' : (valid_ps t), ps = add_in t h ps')
+            \/
+            (exists ps' : (valid_ps t), ps = add_out t h ps').
+  Proof.
+    destruct ps as [part [Hconcat Hforall]].
+    destruct part as [| p rest].
+    - (* impossible: concat [] ≠ h :: t *)
+      simpl in Hconcat. discriminate.
+
+    - destruct p as [| a p'].
+      + (* impossible: empty block *)
+        simpl in Hforall.
+        inversion Hforall; contradiction.
+
+      + simpl in Hconcat.
+        inversion Hconcat; subst a.
+
+        destruct p' as [| x xs].
+        * (* p = [h] : add_out case *)
+          right. 
+          assert (Forall (fun p : list A => p <> []) ([h] :: rest)) by exact Hforall.
+          rewrite Forall_cons_iff in H. destruct H. clear H. simpl in H1.
+          refine (ex_intro _ _ _).
+          apply (sig_proof_irrelevance _ _ proof_irrelevance).
+          simpl. clear Hconcat.
+          instantiate (1 := (exist _ rest (conj H1 H0))).
+          destruct rest.
+          compute. reflexivity.
+          compute. reflexivity.
+
+        * (* p = h :: _ : add_in case *)
+          left. assert (Forall (fun p : list A => p <> []) ((x :: xs) :: rest)).
+          rewrite Forall_cons_iff in Hforall. destruct Hforall.
+          rewrite Forall_cons_iff. split. symmetry. apply nil_cons. apply H0.
+          rewrite <- concat_cons in H1.
+          refine (ex_intro _ _ _).
+          apply (sig_proof_irrelevance _ _ proof_irrelevance).
+          simpl. 
+          instantiate (1 := (exist _ ((x :: xs) :: rest) (conj H1 H))).
+          destruct rest.
+          compute. reflexivity.
+          compute. reflexivity.
   Qed.
 
-  Lemma splits_sound :
-    forall (w w1 w2 : list A),
-       In (w1,w2) (splits w) ->
-       w = w1 ++ w2.
+  Definition parts_result (l : list A) := 
+    { result : list (valid_ps l) |
+      forall x : (valid_ps l), In x result}.
+
+  Definition extend (e : A) (l : list A) (result : parts_result l) :
+    parts_result (e :: l).
   Proof.
-    intros w w1 w2 Hin.
-    unfold splits in Hin.
-    apply in_map_iff in Hin.
-    destruct Hin as [x [Hx Hinx]].
-    inversion Hx.
-    rewrite firstn_skipn.
-    reflexivity.
+    destruct l as [| h].
+    - intros. refine (exist _ [ps_singleton e] _).
+      intros. simpl. left. destruct x as [part [Hconcat Hforall]].
+      apply (sig_proof_irrelevance _ _ proof_irrelevance).
+      simpl. symmetry. apply partition_of_singleton_is_singleton; assumption.
+    - refine (exist _ 
+    ((map (add_in (h :: l) e) (proj1_sig result)) 
+    ++ (map (add_out (h :: l) e) (proj1_sig result))) _). intros ps.
+    pose proof (back_parts e (h::l) ps).
+    destruct H as [[x H]|[x H]]. 
+      + destruct result as [result P]. pose proof (P x).
+      apply in_or_app. left. simpl. rewrite in_map_iff.
+      exists x. split.
+        * rewrite H. reflexivity.
+        * apply H0.
+      + destruct result as [result P]. pose proof (P x).
+      apply in_or_app. right. simpl. rewrite in_map_iff.
+      exists x. split.
+        * rewrite H. reflexivity.
+        * apply H0.
   Qed.
 
-  Lemma splits_correct :
-    forall (w w1 w2 : list A),
-       In (w1,w2) (splits w) <-> w = w1 ++ w2.
+  Definition parts_result_empty : parts_result [].
   Proof.
-    split.
-    - apply splits_sound.
-    - apply splits_complete.
+    refine (exist _ [ps_empty] _).
+    intros. destruct x as [x [a H]]. simpl.
+    pose proof ((proj1 (concat_nil_Forall x)) a).
+    pose proof (forall_false_nil x (fun a => a = [])) H0 H.
+    left. apply (sig_proof_irrelevance _ _ proof_irrelevance).
+    simpl. symmetry. apply H1.
   Qed.
 
+  Fixpoint parts (l : list A) : parts_result l :=
+    match l with 
+      |[] => parts_result_empty
+      |h::t => let prec_parts := parts t in extend h t prec_parts
+      end.
 
-  (* ------------------------------------------------------------ *)
-  (*                 Correctness of parts                         *)
-  (* ------------------------------------------------------------ *)
+End DefParts.
 
-  (* ps ∈ parts w   <->  ps is a partition of w *)
+Section RegAccept.
 
-  Definition partition {A : Type} (w : list A) (ps : list (list A)) : Prop :=
-    concat ps = w /\ Forall (fun p => p <> []) ps.
+  Context {A : Type}.
 
-  Lemma f_parts_preserves_nonempty :
-    forall (e : A) ps n,
-      Forall (fun p => p <> []) ps ->
-      Forall (fun p => p <> []) (fst (f_parts e (ps, n))).
+  Parameter EqDec : forall x y : A, {x = y} + {x <> y}.
+
+  Definition eqb (x y : A) : bool :=
+    if EqDec x y then true else false.
+
+  Lemma eqb_true_iff
+     : forall a b : A, eqb a b = true <-> a = b.
   Proof.
-    intros e ps n H.
-    destruct ps as [|t q].
-    - simpl. constructor.
-      + discriminate.
-      + constructor.
-    - simpl.
-      destruct (Nat.even n).
-      + constructor.
-        * discriminate.
-        * exact (Forall_inv_tail H).
-      + constructor.
-        * discriminate.
-        * constructor; pose proof (Forall_inv H); auto.
-        apply Forall_inv_tail in H; auto.
+    intros. split.
+    - compute. destruct (EqDec a b); auto. intros. inversion H.
+    - intro H. rewrite H. compute. destruct (EqDec b b). reflexivity. 
+    compute in n. assert (b = b). reflexivity. pose proof (n H0). inversion H1.
   Qed.
 
-  Lemma f_parts_concat :
-    forall (e : A) ps n,
-      concat (fst (f_parts e (ps, n))) = e :: concat ps.
-  Proof.
-    intros e ps n.
-    destruct ps as [|t q].
-    - simpl. reflexivity.
-    - simpl.
-      destruct (Nat.even n); simpl; reflexivity.
-  Qed.
+  Infix "=?":= eqb (at level 70).
 
-  (* Helper: Generalize the concatenation property for fold_left *)
-  Lemma fold_f_parts_concat_aux :
-    forall (l : list A) (acc : list (list A) * nat),
-      concat (fst (fold_right f_parts acc l)) = l ++ concat (fst acc).
-  Proof.
-    induction l as [|x l IH].
-    - intros acc. simpl. reflexivity.
-    - intros acc. simpl.
-      remember (fold_right f_parts acc l) as res eqn:Hres.
-      destruct res as [ps n].
-      rewrite f_parts_concat.
-      f_equal.
-      rewrite <- IH.
-      rewrite <- Hres.
-      simpl. reflexivity.
-  Qed.
+  Fixpoint acceptb (r : Reg) (w : list A) : bool :=
+    match r with
+    | Eps =>
+        match w with
+        | [] => true
+        | _  => false
+        end
 
-  Lemma fold_f_parts_nonempty_aux :
-    forall (l : list A) (acc : list (list A) * nat),
-      Forall (fun p => p <> []) (fst acc) ->
-      Forall (fun p => p <> []) (fst (fold_right f_parts acc l)).
-  Proof.
-    induction l as [|x l IH].
-    - intros acc H. simpl. assumption.
-    - intros acc H. simpl.
-      remember (fold_right f_parts acc l) as res eqn:Hres.
-      destruct res as [ps n].
-      apply f_parts_preserves_nonempty.
-      apply (f_equal fst) in Hres. simpl in Hres.
-      rewrite Hres.
-      apply IH.
-      assumption.
-  Qed.
+    | Sym a =>
+        match w with
+        | [b] => a =? b
+        | _   => false
+        end
 
-  Lemma fold_f_parts_partition :
-    forall (w : list A) n,
-      partition w (g_parts w n).
-  Proof.
-    intros w n.
-    unfold partition.
-    split.
-    - (* Concatenation *) unfold g_parts.
-      rewrite fold_f_parts_concat_aux.
-      simpl. rewrite app_nil_r.
-      reflexivity.
-    - (* Non-empty *)
-      apply fold_f_parts_nonempty_aux.
-      constructor.
-  Qed.
+    | Alt r1 r2 =>
+        acceptb r1 w || acceptb r2 w
 
-  Lemma parts_sound :
-    forall (w : list A) (ps : list (list A)),
-      In ps (parts w) ->
-      partition w ps.
-  Proof.
-    intros w ps Hin.
-    unfold parts in Hin.
-    apply in_map_iff in Hin.
-    destruct Hin as [n [Hps _]].
-    subst ps.
-    apply fold_f_parts_partition.
-  Qed.
+    | Seq r1 r2 =>
+        let ss := proj1_sig (splits w) in
+        existsb
+          (fun s =>
+             let '(w1, w2) := proj1_sig s in
+             acceptb r1 w1 && acceptb r2 w2)
+          ss
 
-  Definition build_number {A} (ps : list (list A)) : nat :=
-    fold_left (fun acc h => 2^(length h - 1) * (1 + 2 * acc)) (tl ps) 0.
+    | Rep r' =>
+        let ps := proj1_sig (parts w) in
+        existsb
+          (fun p =>
+             let ws := proj1_sig p in
+             forallb (fun wi => acceptb r' wi) ws)
+          ps
+    end.
 
-  Eval compute in map (fun ps => g_parts (concat ps) (build_number ps)) (parts [1;2;3;4]).
-  Eval compute in map (fun ps => build_number ps) (parts [1;2;3;4]).
-  Eval compute in (parts [1;2;3;4]).
-
-  Eval compute in (tail [[1];[2];[3;4]]).
-
-  Eval compute in (tail [[1;2];[3]]).
-
-  Lemma build_number_lemma:
-    forall (w : list A) (ps : list (list A)),
-      ps <> [] ->
-      partition w ps ->
-      g_parts w (build_number ps) = ps.
-    Proof.
-    Admitted.
-
-
-  Eval compute in map (fun ps => fst (fold_right f_parts ([], (build_number ps)) (concat ps))) (parts [1;2;3]).
-  Eval compute in (parts [1;2;3]).
-
-
-
-  Lemma parts_complete :
-    forall (w : list A) (ps : list (list A)),
-        partition w ps ->
-        In ps (parts w).
-  Proof.
-  Admitted.
-
-End CorrectnessLemmas.
-
-
-
-Fixpoint accept {A : Type} (eqA : A -> A -> bool) (r : Reg) (w : list A) : bool :=
-  match r with
-  | Eps => match w with 
-    |[] => true
-    | _ => false 
-  end
-  | Sym a => match w with 
-    |[b] => eqA a b 
-    | _  => false 
-  end
-  | Alt r1 r2 => accept eqA r1 w || accept eqA r2 w
-  | Seq r1 r2 =>
-      (* tester toutes les décompositions *)
-      existsb (fun '(w1,w2) => accept eqA r1 w1 && accept eqA r2 w2) (splits w)
-  | Rep r' =>
-      (* tester toutes les partitions *)
-      existsb (fun ws => forallb (fun wi => accept eqA r' wi) ws) (parts w)
-  end.
-
+End RegAccept.

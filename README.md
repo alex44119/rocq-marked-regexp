@@ -37,6 +37,8 @@ Expected output (ending lines):
 $ make
 rocq makefile -f _CoqProject -o Makefile.rocq
 ROCQ DEP VFILES
+ROCQ compile theories/Util.v
+ROCQ compile theories/Reg.v
 ROCQ compile theories/RegAccept.v
 ```
 
